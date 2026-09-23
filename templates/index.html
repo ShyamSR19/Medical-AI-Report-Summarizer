@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClarityMed Navigator — Understanding Your Health Report</title>
+    <!-- Tailwind CSS v3 via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease-in-out;
+            opacity: 0;
+        }
+        .accordion-content.active {
+            max-height: 1000px;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-sm">
+                    <i data-lucide="heart" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-slate-900 leading-tight">ClarityMed Navigator</h1>
+                    <p class="text-xs text-slate-500">Understanding your health report, simply</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs text-slate-600 bg-slate-100 border border-slate-200/60">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1.5 text-teal-600"></i>
+                    Private & Confidential
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left Sidebar / Input Section -->
+        <aside class="lg:col-span-4 space-y-6">
+            
+            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-900 flex items-center">
+                        <i data-lucide="file-up" class="w-4 h-4 mr-2 text-teal-600"></i>
+                        Upload your report
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Supported formats: PDF, JPG, PNG, TXT</p>
+                </div>
+
+                <!-- Form Upload -->
+                <form id="summarize-form" class="space-y-4" onsubmit="submitForm(event)">
+                    <div class="border-2 border-dashed border-slate-200 hover:border-teal-400 rounded-xl p-4 text-center transition-colors cursor-pointer relative bg-slate-50/50">
+                        <input type="file" id="file-input" name="file" accept=".pdf,.png,.jpg,.jpeg,.txt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="updateFileName(this)">
+                        <div class="space-y-1.5 py-2">
+                            <i data-lucide="upload-cloud" class="w-6 h-6 mx-auto text-slate-400"></i>
+                            <div class="text-xs font-semibold text-slate-700" id="file-label">Click or drag report file here</div>
+                            <div class="text-[11px] text-slate-400">Up to 16MB</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Or paste report text directly:</label>
+                        <textarea id="report-text" name="text" rows="4" placeholder="Paste findings or impression here..." class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none resize-none text-slate-700 placeholder:text-slate-400"></textarea>
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs py-3 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center space-x-2">
+                        <span>Explain My Report</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </form>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200/80"></div>
+                    <span class="flex-shrink mx-3 text-[11px] text-slate-400 font-medium">Or try a sample</span>
+                    <div class="flex-grow border-t border-slate-200/80"></div>
+                </div>
+
+                <!-- Sample Selector -->
+                <div class="space-y-2">
+                    <button onclick="loadSample('chest_ct')" id="btn-chest_ct" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200/80 hover:border-teal-500 hover:bg-teal-50/40 transition-all flex items-center justify-between text-xs text-slate-700 font-medium group">
+                        <span class="flex items-center">
+                            <i data-lucide="scan" class="w-4 h-4 mr-2 text-slate-400 group-hover:text-teal-600"></i>
+                            Chest CT
+                        </span>
+                        <span class="text-[11px] text-slate-400">Sample</span>
+                    </button>
+
+                    <button onclick="loadSample('blood_panel')" id="btn-blood_panel" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200/80 hover:border-teal-500 hover:bg-teal-50/40 transition-all flex items-center justify-between text-xs text-slate-700 font-medium group">
+                        <span class="flex items-center">
+                            <i data-lucide="droplet" class="w-4 h-4 mr-2 text-slate-400 group-hover:text-teal-600"></i>
+                            Blood Panel
+                        </span>
+                        <span class="text-[11px] text-slate-400">Sample</span>
+                    </button>
+
+                    <button onclick="loadSample('brain_mri')" id="btn-brain_mri" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200/80 hover:border-teal-500 hover:bg-teal-50/40 transition-all flex items-center justify-between text-xs text-slate-700 font-medium group">
+                        <span class="flex items-center">
+                            <i data-lucide="brain" class="w-4 h-4 mr-2 text-slate-400 group-hover:text-teal-600"></i>
+                            Brain MRI
+                        </span>
+                        <span class="text-[11px] text-slate-400">Sample</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Reassurance Note -->
+            <div class="px-2 text-[11px] text-slate-400 leading-relaxed text-center">
+                Your report information stays private. We help translate clinical medical terms into everyday English.
+            </div>
+
+        </aside>
+
+        <!-- Right Main Content Area -->
+        <section class="lg:col-span-8 space-y-6">
+            
+            <!-- 1. EMPTY STATE -->
+            <div id="welcome-state" class="bg-white rounded-2xl p-10 border border-slate-200/80 text-center shadow-sm space-y-6 my-auto">
+                <div class="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto">
+                    <i data-lucide="heart" class="w-7 h-7"></i>
+                </div>
+                <div class="max-w-md mx-auto space-y-2">
+                    <h3 class="text-xl font-bold text-slate-900">Understand your health report, simply.</h3>
+                    <p class="text-xs text-slate-500 leading-relaxed">Upload a report or choose a sample to get a clear explanation.</p>
+                </div>
+                
+                <div class="pt-4 border-t border-slate-100 flex justify-center items-center gap-6 sm:gap-10 text-xs text-slate-600 font-medium">
+                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-teal-600"></i> Clear findings</span>
+                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-teal-600"></i> Important details</span>
+                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-teal-600"></i> Next steps</span>
+                </div>
+            </div>
+
+            <!-- 2. PROCESSING STATE -->
+            <div id="loading-state" class="hidden bg-white rounded-2xl p-12 border border-slate-200/80 text-center space-y-6 shadow-sm">
+                <div class="w-10 h-10 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto"></div>
+                <div class="max-w-xs mx-auto space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900">Reading your report...</h3>
+                    <div class="space-y-2 text-left text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div id="step-1" class="flex items-center text-teal-700 font-medium">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 mr-2"></i> Reading report
+                        </div>
+                        <div id="step-2" class="flex items-center text-teal-700 font-medium">
+                            <i data-lucide="check-circle-2" class="w-4 h-4 mr-2"></i> Finding important information
+                        </div>
+                        <div id="step-3" class="flex items-center text-slate-400">
+                            <i data-lucide="circle" class="w-4 h-4 mr-2"></i> Preparing your explanation
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. RESULTS SCREEN -->
+            <div id="results-container" class="hidden space-y-6">
+                
+                <!-- Results Header Actions -->
+                <div class="flex items-center justify-between border-b border-slate-200/80 pb-4">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider font-bold text-slate-400">YOUR REPORT</span>
+                        <h2 id="report-main-heading" class="text-lg font-bold text-slate-900">What your report says</h2>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span id="safety-label" class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-md text-[11px] text-slate-500 bg-slate-100 border border-slate-200/60">
+                            <i data-lucide="check" class="w-3 h-3 mr-1 text-teal-600"></i>
+                            <span id="safety-label-text">Measurements checked against your report</span>
+                        </span>
+                        <button onclick="downloadPDF()" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-xs">
+                            <i data-lucide="download" class="w-3.5 h-3.5 mr-1.5 text-slate-500"></i>
+                            Download PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Overall Message Card -->
+                <div id="overall-status-card" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-2">
+                    <div class="flex items-center space-x-2">
+                        <span id="status-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <h3 id="banner-title" class="text-base font-bold text-slate-900">Routine Finding Identified</h3>
+                    </div>
+                    <p id="banner-subtitle" class="text-xs text-slate-600 leading-relaxed pl-4">No concerning findings identified in this scan.</p>
+                </div>
+
+                <!-- Key Findings Section -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Key Finding</h3>
+                    <div id="key-findings-container" class="space-y-4">
+                        <!-- Dynamic findings inserted here -->
+                    </div>
+                </div>
+
+                <!-- Section: What Should I Know? -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                        <i data-lucide="help-circle" class="w-4 h-4 mr-2 text-teal-600"></i>
+                        What should I know?
+                    </h3>
+                    <ul id="what-to-know-list" class="space-y-2 text-xs text-slate-600 pl-1">
+                        <!-- Dynamic bullets inserted here -->
+                    </ul>
+                </div>
+
+                <!-- Section: What to do next -->
+                <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 flex items-center">
+                                <i data-lucide="arrow-right-circle" class="w-4 h-4 mr-2 text-teal-600"></i>
+                                What to do next
+                            </h3>
+                            <p id="primary-next-step" class="text-xs text-slate-600 mt-1">Discuss this finding with your doctor at your next appointment.</p>
+                        </div>
+                    </div>
+
+                    <!-- Checklist -->
+                    <ul id="checklist-items" class="space-y-2 pt-2 border-t border-slate-100">
+                        <!-- Dynamic checklist items -->
+                    </ul>
+
+                    <!-- Secondary Link for Doctor Questions -->
+                    <div class="pt-2 border-t border-slate-100">
+                        <button onclick="toggleDoctorQuestions()" class="text-xs font-semibold text-teal-700 hover:text-teal-800 flex items-center py-1 outline-none group">
+                            <span>Questions to ask your doctor</span>
+                            <i id="doctor-questions-arrow" data-lucide="chevron-right" class="w-4 h-4 ml-1 transition-transform"></i>
+                        </button>
+
+                        <div id="doctor-questions-panel" class="hidden mt-3 space-y-2 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+                            <div class="font-bold text-slate-900 mb-2">Suggested questions for your consultation:</div>
+                            <ol id="doctor-questions-list" class="space-y-2 pl-4 list-decimal marker:text-teal-600">
+                                <!-- Dynamic doctor questions -->
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progressive Disclosure: Technical Medical Details -->
+                <div class="pt-2">
+                    <button onclick="toggleTechnicalDetails()" class="text-xs font-medium text-slate-500 hover:text-slate-700 flex items-center py-1 outline-none">
+                        <i data-lucide="file-text" class="w-4 h-4 mr-1.5 text-slate-400"></i>
+                        <span>View medical details</span>
+                        <i id="tech-details-arrow" data-lucide="chevron-down" class="w-3.5 h-3.5 ml-1 transition-transform"></i>
+                    </button>
+
+                    <div id="technical-details-panel" class="hidden mt-3 space-y-4">
+                        <div id="technical-drawers-container" class="space-y-3">
+                            <!-- Dynamic technical medical drawers inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subtle Medical Disclaimer -->
+                <div class="pt-6 border-t border-slate-200/60 text-center">
+                    <p class="text-[11px] text-slate-400">
+                        This summary helps explain your report. It does not replace advice from your doctor.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200/80 py-4 text-center text-[11px] text-slate-400 mt-auto">
+        <div class="max-w-6xl mx-auto px-4">
+            ClarityMed Navigator • Educational tool for patients and families
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let currentSummaryData = null;
+
+        function getApiUrl(path) {
+            if (window.location.protocol === 'file:' || (!window.location.host.includes('127.0.0.1') && !window.location.host.includes('localhost'))) {
+                return 'http://127.0.0.1:5000' + path;
+            }
+            return path;
+        }
+
+        function updateFileName(input) {
+            const label = document.getElementById('file-label');
+            if (input.files && input.files[0]) {
+                label.textContent = input.files[0].name;
+            } else {
+                label.textContent = 'Click or drag report file here';
+            }
+        }
+
+        async function loadSample(sampleKey) {
+            document.querySelectorAll('.sample-btn').forEach(btn => {
+                btn.classList.remove('border-teal-500', 'bg-teal-50/60');
+            });
+            const selectedBtn = document.getElementById(`btn-${sampleKey}`);
+            if (selectedBtn) {
+                selectedBtn.classList.add('border-teal-500', 'bg-teal-50/60');
+            }
+
+            document.getElementById('file-input').value = '';
+            document.getElementById('file-label').textContent = 'Click or drag report file here';
+            document.getElementById('report-text').value = '';
+
+            showLoading(true);
+
+            try {
+                const res = await fetch(getApiUrl('/summarize'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sample_key: sampleKey })
+                });
+                const data = await res.json();
+                showLoading(false);
+                if (res.ok && data.success) {
+                    renderSummary(data);
+                } else {
+                    alert(data.error || 'Failed to analyze report');
+                }
+            } catch (err) {
+                showLoading(false);
+                alert('Error connecting to server (http://127.0.0.1:5000). Please ensure Flask is running.');
+            }
+        }
+
+        async function submitForm(e) {
+            e.preventDefault();
+            const fileInput = document.getElementById('file-input');
+            const textInput = document.getElementById('report-text').value.trim();
+
+            if (!fileInput.files[0] && !textInput) {
+                alert('Please select a sample report, upload a file, or paste clinical report text.');
+                return;
+            }
+
+            showLoading(true);
+
+            try {
+                let res;
+                const endpoint = getApiUrl('/summarize');
+                if (fileInput.files[0]) {
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+                    res = await fetch(endpoint, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    res = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: textInput })
+                    });
+                }
+
+                const data = await res.json();
+                showLoading(false);
+                if (res.ok && data.success) {
+                    renderSummary(data);
+                } else {
+                    alert(data.error || 'Failed to analyze report');
+                }
+            } catch (err) {
+                showLoading(false);
+                alert('Error connecting to server (http://127.0.0.1:5000). Please verify server is running.');
+            }
+        }
+
+        function showLoading(isLoading) {
+            document.getElementById('welcome-state').classList.add('hidden');
+            if (isLoading) {
+                document.getElementById('loading-state').classList.remove('hidden');
+                document.getElementById('results-container').classList.add('hidden');
+            } else {
+                document.getElementById('loading-state').classList.add('hidden');
+            }
+        }
+
+        function renderSummary(data) {
+            currentSummaryData = data;
+            const summary = data.summary;
+            const guardrails = data.guardrails;
+
+            document.getElementById('results-container').classList.remove('hidden');
+
+            // Banner status title & subtitle
+            const bannerTitle = document.getElementById('banner-title');
+            const bannerSubtitle = document.getElementById('banner-subtitle');
+            const statusDot = document.getElementById('status-indicator-dot');
+
+            bannerTitle.textContent = summary.overall_status.banner_title;
+            bannerSubtitle.textContent = summary.overall_status.subtitle;
+
+            if (summary.overall_status.status_level === 'urgent') {
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-rose-500";
+            } else if (summary.overall_status.status_level === 'monitor') {
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-amber-500";
+            } else {
+                statusDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500";
+            }
+
+            // Safety label
+            const safetyText = document.getElementById('safety-label-text');
+            if (guardrails && guardrails.message) {
+                safetyText.textContent = guardrails.message;
+            }
+
+            // Key Findings Container
+            const keyFindingsContainer = document.getElementById('key-findings-container');
+            keyFindingsContainer.innerHTML = '';
+
+            summary.findings.forEach((finding, idx) => {
+                const card = document.createElement('div');
+                card.className = "space-y-2 border-b border-slate-100 last:border-0 pb-4 last:pb-0";
+
+                card.innerHTML = `
+                    <div class="flex items-baseline justify-between">
+                        <h4 class="text-sm font-bold text-slate-900">${finding.organ}</h4>
+                        ${finding.visual_analogy ? `<span class="text-xs font-semibold text-teal-800 bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-md">${finding.visual_analogy}</span>` : ''}
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">${finding.simple_explanation}</p>
+                `;
+
+                keyFindingsContainer.appendChild(card);
+            });
+
+            // What Should I Know? Bullets
+            const whatToKnowList = document.getElementById('what-to-know-list');
+            whatToKnowList.innerHTML = '';
+
+            if (summary.findings && summary.findings.length > 0) {
+                summary.findings.forEach(finding => {
+                    const li = document.createElement('li');
+                    li.className = "flex items-start";
+                    li.innerHTML = `<span class="text-teal-600 font-bold mr-2">•</span><span>${finding.organ}: ${finding.simple_explanation}</span>`;
+                    whatToKnowList.appendChild(li);
+                });
+            } else {
+                const li = document.createElement('li');
+                li.className = "text-slate-500";
+                li.textContent = "Your report does not describe any concerning findings.";
+                whatToKnowList.appendChild(li);
+            }
+
+            // Next Steps Checklist
+            const checklistContainer = document.getElementById('checklist-items');
+            checklistContainer.innerHTML = '';
+            summary.patient_checklist.forEach(item => {
+                const li = document.createElement('li');
+                li.className = "flex items-start space-x-2.5 text-xs text-slate-700";
+                li.innerHTML = `
+                    <input type="checkbox" class="mt-0.5 rounded text-teal-600 focus:ring-teal-500/20 cursor-pointer">
+                    <span class="leading-relaxed">${item}</span>
+                `;
+                checklistContainer.appendChild(li);
+            });
+
+            // Doctor Questions
+            const questionsContainer = document.getElementById('doctor-questions-list');
+            questionsContainer.innerHTML = '';
+            summary.doctor_questions.forEach(q => {
+                const li = document.createElement('li');
+                li.className = "leading-relaxed";
+                li.textContent = q;
+                questionsContainer.appendChild(li);
+            });
+
+            // Technical Medical Details Drawers
+            const techDrawersContainer = document.getElementById('technical-drawers-container');
+            techDrawersContainer.innerHTML = '';
+            summary.findings.forEach((finding, idx) => {
+                const drawer = finding.clinical_drawer;
+                const drawerDiv = document.createElement('div');
+                drawerDiv.className = "bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs text-slate-700";
+
+                const pertinentNegativesHTML = drawer.pertinent_negatives && drawer.pertinent_negatives.length > 0
+                    ? drawer.pertinent_negatives.map(n => `<span class="inline-block bg-white text-slate-700 text-[11px] px-2 py-0.5 rounded border border-slate-200 mr-1 mb-1">✓ ${n}</span>`).join('')
+                    : '<span class="text-slate-400">None listed</span>';
+
+                drawerDiv.innerHTML = `
+                    <div class="font-bold text-slate-900 border-b border-slate-200/60 pb-1">${finding.organ} — Medical Reference</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400">Measurements</span>
+                            <span class="font-mono text-slate-800">${drawer.measurements}</span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400">Clinical Recommendation</span>
+                            <span>${drawer.clinical_action}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Exact Report Wording</span>
+                        <blockquote class="border-l-2 border-slate-300 pl-2.5 italic text-slate-600 bg-white p-2 rounded-r-md">"${drawer.exact_impression}"</blockquote>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400 mb-1">Relevant Negatives</span>
+                        <div>${pertinentNegativesHTML}</div>
+                    </div>
+                `;
+                techDrawersContainer.appendChild(drawerDiv);
+            });
+
+            // Re-initialize Lucide icons
+            lucide.createIcons();
+        }
+
+        function toggleDoctorQuestions() {
+            const panel = document.getElementById('doctor-questions-panel');
+            const arrow = document.getElementById('doctor-questions-arrow');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                arrow.style.transform = 'rotate(90deg)';
+            } else {
+                panel.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function toggleTechnicalDetails() {
+            const panel = document.getElementById('technical-details-panel');
+            const arrow = document.getElementById('tech-details-arrow');
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                panel.classList.add('hidden');
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function downloadPDF() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
