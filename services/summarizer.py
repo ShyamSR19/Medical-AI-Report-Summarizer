@@ -318,7 +318,13 @@ def _call_groq(groq_api_key: str, model_name: str, prompt: str) -> str:
 
 def _call_gemini(gemini_api_key: str, prompt: str) -> str:
     """Calls Google Gemini API with fallback across model versions."""
-    models_to_try = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"]
+    models_to_try = [
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+        "gemini-3.8-flash",
+        "gemini-flash-latest",
+        "gemini-flash-lite-latest"
+    ]
     last_err = None
 
     for model_name in models_to_try:
@@ -331,6 +337,7 @@ def _call_gemini(gemini_api_key: str, prompt: str) -> str:
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
+                        response_schema=MedicalSummary,
                         system_instruction=SYSTEM_PROMPT,
                         temperature=0.0
                     )
