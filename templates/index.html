@@ -6,14 +6,49 @@
     <title>ClarityMed Navigator — Understanding Your Health Report</title>
     <!-- Tailwind CSS v3 via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            50: '#f0f5fa',
+                            100: '#dce8f4',
+                            200: '#bfd5ec',
+                            300: '#94bade',
+                            400: '#6499cd',
+                            500: '#427bb9',
+                            600: '#31619b',
+                            700: '#284e7e',
+                            800: '#1b3658',
+                            900: '#0f1f38',
+                            950: '#091322'
+                        },
+                        ceil: {
+                            50: '#f0f7fc',
+                            100: '#dfedf7',
+                            200: '#c2dfef',
+                            300: '#95cae4',
+                            400: '#5faed5',
+                            500: '#2b7fb3',
+                            600: '#206994',
+                            700: '#1b567a',
+                            800: '#174764',
+                            900: '#173c52'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+            background-color: #f5f8fc;
+            color: #0f1f38;
         }
         .accordion-content {
             max-height: 0;
@@ -25,25 +60,132 @@
             max-height: 1000px;
             opacity: 1;
         }
+        /* Medical Term Tooltips */
+        .med-term {
+            border-bottom: 1.5px dotted #2b7fb3;
+            cursor: help;
+            position: relative;
+            color: inherit;
+        }
+        .med-term:hover {
+            color: #2b7fb3;
+        }
+        .med-term .med-tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f1f38;
+            color: #f0f7fc;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.5;
+            white-space: normal;
+            width: 220px;
+            z-index: 50;
+            box-shadow: 0 4px 12px rgba(15,31,56,0.25);
+            pointer-events: none;
+        }
+        .med-term .med-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #0f1f38;
+        }
+        .med-term:hover .med-tooltip {
+            display: block;
+        }
+        /* Reference Range Gauge */
+        .range-gauge {
+            position: relative;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #f59e0b 0%, #f59e0b 20%, #10b981 20%, #10b981 80%, #ef4444 80%, #ef4444 100%);
+            margin-top: 6px;
+        }
+        .range-gauge .gauge-marker {
+            position: absolute;
+            top: -4px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #0f1f38;
+            border: 2.5px solid white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+        .range-gauge .gauge-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-size: 9px;
+            color: #627d98;
+        }
+        /* Source Grounding Modal */
+        .source-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 31, 56, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .source-modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .source-modal {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 1100px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(15,31,56,0.3);
+            overflow: hidden;
+            transform: translateY(20px);
+            transition: transform 0.25s ease;
+        }
+        .source-modal-overlay.active .source-modal {
+            transform: translateY(0);
+        }
+        .source-highlight {
+            background: #fef3c7;
+            border-radius: 3px;
+            padding: 1px 2px;
+            transition: background 0.3s;
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased">
+<body class="min-h-screen flex flex-col antialiased bg-[#f5f8fc]">
 
     <!-- Header Navigation -->
-    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30">
+    <header class="bg-[#0f1f38] text-white border-b border-[#1b3658] sticky top-0 z-30 shadow-xs">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
             <div class="flex items-center space-x-3">
-                <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-sm">
+                <div class="w-9 h-9 rounded-xl bg-[#2b7fb3] text-white flex items-center justify-center shadow-sm">
                     <i data-lucide="heart" class="w-5 h-5"></i>
                 </div>
                 <div>
-                    <h1 class="text-base font-bold text-slate-900 leading-tight">ClarityMed Navigator</h1>
-                    <p class="text-xs text-slate-500">Understanding your health report, simply</p>
+                    <h1 class="text-base font-bold text-white leading-tight">ClarityMed Navigator</h1>
+                    <p class="text-xs text-[#95cae4]">Understanding your health report, simply</p>
                 </div>
             </div>
             <div class="flex items-center space-x-3">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs text-slate-600 bg-slate-100 border border-slate-200/60">
-                    <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1.5 text-teal-600"></i>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs text-[#dfedf7] bg-[#1b3658] border border-[#284e7e]">
+                    <i data-lucide="shield-check" class="w-3.5 h-3.5 mr-1.5 text-[#5faed5]"></i>
                     Private & Confidential
                 </span>
             </div>
@@ -56,73 +198,73 @@
         <!-- Left Sidebar / Input Section -->
         <aside class="lg:col-span-4 space-y-6">
             
-            <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-5">
+            <div class="bg-white rounded-2xl p-6 border border-[#dce8f4] shadow-sm space-y-5">
                 <div>
-                    <h2 class="text-sm font-bold text-slate-900 flex items-center">
-                        <i data-lucide="file-up" class="w-4 h-4 mr-2 text-teal-600"></i>
+                    <h2 class="text-sm font-bold text-[#0f1f38] flex items-center">
+                        <i data-lucide="file-up" class="w-4 h-4 mr-2 text-[#2b7fb3]"></i>
                         Upload your report
                     </h2>
-                    <p class="text-xs text-slate-500 mt-1">Supported formats: PDF, JPG, PNG, TXT</p>
+                    <p class="text-xs text-[#627d98] mt-1">Supported formats: PDF, JPG, PNG, TXT</p>
                 </div>
 
                 <!-- Form Upload -->
                 <form id="summarize-form" class="space-y-4" onsubmit="submitForm(event)">
-                    <div class="border-2 border-dashed border-slate-200 hover:border-teal-400 rounded-xl p-4 text-center transition-colors cursor-pointer relative bg-slate-50/50">
+                    <div class="border-2 border-dashed border-[#dce8f4] hover:border-[#2b7fb3] rounded-xl p-4 text-center transition-colors cursor-pointer relative bg-[#f0f7fc]/50">
                         <input type="file" id="file-input" name="file" accept=".pdf,.png,.jpg,.jpeg,.txt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="updateFileName(this)">
                         <div class="space-y-1.5 py-2">
-                            <i data-lucide="upload-cloud" class="w-6 h-6 mx-auto text-slate-400"></i>
-                            <div class="text-xs font-semibold text-slate-700" id="file-label">Click or drag report file here</div>
-                            <div class="text-[11px] text-slate-400">Up to 16MB</div>
+                            <i data-lucide="upload-cloud" class="w-6 h-6 mx-auto text-[#8eafd2]"></i>
+                            <div class="text-xs font-semibold text-[#1b3658]" id="file-label">Click or drag report file here</div>
+                            <div class="text-[11px] text-[#8eafd2]">Up to 16MB</div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Or paste report text directly:</label>
-                        <textarea id="report-text" name="text" rows="4" placeholder="Paste findings or impression here..." class="w-full text-xs p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none resize-none text-slate-700 placeholder:text-slate-400"></textarea>
+                        <label class="block text-xs font-semibold text-[#284e7e] mb-1">Or paste report text directly:</label>
+                        <textarea id="report-text" name="text" rows="4" placeholder="Paste findings or impression here..." class="w-full text-xs p-3 rounded-xl border border-[#dce8f4] focus:ring-2 focus:ring-[#2b7fb3]/20 focus:border-[#2b7fb3] outline-none resize-none text-[#0f1f38] placeholder:text-[#94bade] bg-white"></textarea>
                     </div>
 
-                    <button type="submit" id="submit-btn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs py-3 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center space-x-2">
+                    <button type="submit" id="submit-btn" class="w-full bg-[#2b7fb3] hover:bg-[#206994] text-white font-semibold text-xs py-3 px-4 rounded-xl shadow-sm transition-colors flex items-center justify-center space-x-2">
                         <span>Explain My Report</span>
                         <i data-lucide="arrow-right" class="w-4 h-4"></i>
                     </button>
                 </form>
 
                 <div class="relative flex py-1 items-center">
-                    <div class="flex-grow border-t border-slate-200/80"></div>
-                    <span class="flex-shrink mx-3 text-[11px] text-slate-400 font-medium">Or try a sample</span>
-                    <div class="flex-grow border-t border-slate-200/80"></div>
+                    <div class="flex-grow border-t border-[#dce8f4]"></div>
+                    <span class="flex-shrink mx-3 text-[11px] text-[#8eafd2] font-medium">Or try a sample</span>
+                    <div class="flex-grow border-t border-[#dce8f4]"></div>
                 </div>
 
                 <!-- Sample Selector -->
                 <div class="space-y-2">
-                    <button onclick="loadSample('chest_ct')" id="btn-chest_ct" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200/80 hover:border-teal-500 hover:bg-teal-50/40 transition-all flex items-center justify-between text-xs text-slate-700 font-medium group">
+                    <button onclick="loadSample('chest_ct')" id="btn-chest_ct" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-[#dce8f4] hover:border-[#2b7fb3] hover:bg-[#f0f7fc] transition-all flex items-center justify-between text-xs text-[#1b3658] font-medium group bg-white">
                         <span class="flex items-center">
-                            <i data-lucide="scan" class="w-4 h-4 mr-2 text-slate-400 group-hover:text-teal-600"></i>
+                            <i data-lucide="scan" class="w-4 h-4 mr-2 text-[#8eafd2] group-hover:text-[#2b7fb3]"></i>
                             Chest CT
                         </span>
-                        <span class="text-[11px] text-slate-400">Sample</span>
+                        <span class="text-[11px] text-[#8eafd2]">Sample</span>
                     </button>
 
-                    <button onclick="loadSample('blood_panel')" id="btn-blood_panel" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200/80 hover:border-teal-500 hover:bg-teal-50/40 transition-all flex items-center justify-between text-xs text-slate-700 font-medium group">
+                    <button onclick="loadSample('blood_panel')" id="btn-blood_panel" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-[#dce8f4] hover:border-[#2b7fb3] hover:bg-[#f0f7fc] transition-all flex items-center justify-between text-xs text-[#1b3658] font-medium group bg-white">
                         <span class="flex items-center">
-                            <i data-lucide="droplet" class="w-4 h-4 mr-2 text-slate-400 group-hover:text-teal-600"></i>
+                            <i data-lucide="droplet" class="w-4 h-4 mr-2 text-[#8eafd2] group-hover:text-[#2b7fb3]"></i>
                             Blood Panel
                         </span>
-                        <span class="text-[11px] text-slate-400">Sample</span>
+                        <span class="text-[11px] text-[#8eafd2]">Sample</span>
                     </button>
 
-                    <button onclick="loadSample('brain_mri')" id="btn-brain_mri" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-slate-200/80 hover:border-teal-500 hover:bg-teal-50/40 transition-all flex items-center justify-between text-xs text-slate-700 font-medium group">
+                    <button onclick="loadSample('brain_mri')" id="btn-brain_mri" class="sample-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-[#dce8f4] hover:border-[#2b7fb3] hover:bg-[#f0f7fc] transition-all flex items-center justify-between text-xs text-[#1b3658] font-medium group bg-white">
                         <span class="flex items-center">
-                            <i data-lucide="brain" class="w-4 h-4 mr-2 text-slate-400 group-hover:text-teal-600"></i>
+                            <i data-lucide="brain" class="w-4 h-4 mr-2 text-[#8eafd2] group-hover:text-[#2b7fb3]"></i>
                             Brain MRI
                         </span>
-                        <span class="text-[11px] text-slate-400">Sample</span>
+                        <span class="text-[11px] text-[#8eafd2]">Sample</span>
                     </button>
                 </div>
             </div>
 
             <!-- Reassurance Note -->
-            <div class="px-2 text-[11px] text-slate-400 leading-relaxed text-center">
+            <div class="px-2 text-[11px] text-[#627d98] leading-relaxed text-center">
                 Your report information stays private. We help translate clinical medical terms into everyday English.
             </div>
 
@@ -132,35 +274,35 @@
         <section class="lg:col-span-8 space-y-6">
             
             <!-- 1. EMPTY STATE -->
-            <div id="welcome-state" class="bg-white rounded-2xl p-10 border border-slate-200/80 text-center shadow-sm space-y-6 my-auto">
-                <div class="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center mx-auto">
+            <div id="welcome-state" class="bg-white rounded-2xl p-10 border border-[#dce8f4] text-center shadow-sm space-y-6 my-auto">
+                <div class="w-14 h-14 bg-[#f0f7fc] text-[#2b7fb3] rounded-2xl flex items-center justify-center mx-auto">
                     <i data-lucide="heart" class="w-7 h-7"></i>
                 </div>
                 <div class="max-w-md mx-auto space-y-2">
-                    <h3 class="text-xl font-bold text-slate-900">Understand your health report, simply.</h3>
-                    <p class="text-xs text-slate-500 leading-relaxed">Upload a report or choose a sample to get a clear explanation.</p>
+                    <h3 class="text-xl font-bold text-[#0f1f38]">Understand your health report, simply.</h3>
+                    <p class="text-xs text-[#627d98] leading-relaxed">Upload a report or choose a sample to get a clear explanation.</p>
                 </div>
                 
-                <div class="pt-4 border-t border-slate-100 flex justify-center items-center gap-6 sm:gap-10 text-xs text-slate-600 font-medium">
-                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-teal-600"></i> Clear findings</span>
-                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-teal-600"></i> Important details</span>
-                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-teal-600"></i> Next steps</span>
+                <div class="pt-4 border-t border-[#dce8f4] flex justify-center items-center gap-6 sm:gap-10 text-xs text-[#284e7e] font-medium">
+                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-[#2b7fb3]"></i> Clear findings</span>
+                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-[#2b7fb3]"></i> Important details</span>
+                    <span class="flex items-center"><i data-lucide="check" class="w-4 h-4 mr-1.5 text-[#2b7fb3]"></i> Next steps</span>
                 </div>
             </div>
 
             <!-- 2. PROCESSING STATE -->
-            <div id="loading-state" class="hidden bg-white rounded-2xl p-12 border border-slate-200/80 text-center space-y-6 shadow-sm">
-                <div class="w-10 h-10 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin mx-auto"></div>
+            <div id="loading-state" class="hidden bg-white rounded-2xl p-12 border border-[#dce8f4] text-center space-y-6 shadow-sm">
+                <div class="w-10 h-10 border-3 border-[#c2dfef] border-t-[#2b7fb3] rounded-full animate-spin mx-auto"></div>
                 <div class="max-w-xs mx-auto space-y-4">
-                    <h3 class="text-sm font-bold text-slate-900">Reading your report...</h3>
-                    <div class="space-y-2 text-left text-xs text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div id="step-1" class="flex items-center text-teal-700 font-medium">
+                    <h3 class="text-sm font-bold text-[#0f1f38]">Reading your report...</h3>
+                    <div class="space-y-2 text-left text-xs text-[#284e7e] bg-[#f0f7fc] p-4 rounded-xl border border-[#dce8f4]">
+                        <div id="step-1" class="flex items-center text-[#1b567a] font-medium">
                             <i data-lucide="check-circle-2" class="w-4 h-4 mr-2"></i> Reading report
                         </div>
-                        <div id="step-2" class="flex items-center text-teal-700 font-medium">
+                        <div id="step-2" class="flex items-center text-[#1b567a] font-medium">
                             <i data-lucide="check-circle-2" class="w-4 h-4 mr-2"></i> Finding important information
                         </div>
-                        <div id="step-3" class="flex items-center text-slate-400">
+                        <div id="step-3" class="flex items-center text-[#8eafd2]">
                             <i data-lucide="circle" class="w-4 h-4 mr-2"></i> Preparing your explanation
                         </div>
                     </div>
@@ -171,78 +313,82 @@
             <div id="results-container" class="hidden space-y-6">
                 
                 <!-- Results Header Actions -->
-                <div class="flex items-center justify-between border-b border-slate-200/80 pb-4">
+                <div class="flex items-center justify-between border-b border-[#dce8f4] pb-4">
                     <div>
-                        <span class="text-xs uppercase tracking-wider font-bold text-slate-400">YOUR REPORT</span>
-                        <h2 id="report-main-heading" class="text-lg font-bold text-slate-900">What your report says</h2>
+                        <span class="text-xs uppercase tracking-wider font-bold text-[#8eafd2]">YOUR REPORT</span>
+                        <h2 id="report-main-heading" class="text-lg font-bold text-[#0f1f38]">What your report says</h2>
                     </div>
                     <div class="flex items-center space-x-3">
-                        <span id="safety-label" class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-md text-[11px] text-slate-500 bg-slate-100 border border-slate-200/60">
-                            <i data-lucide="check" class="w-3 h-3 mr-1 text-teal-600"></i>
+                        <span id="safety-label" class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-md text-[11px] text-[#284e7e] bg-[#f0f7fc] border border-[#dce8f4]">
+                            <i data-lucide="check" class="w-3 h-3 mr-1 text-[#2b7fb3]"></i>
                             <span id="safety-label-text">Measurements checked against your report</span>
                         </span>
-                        <button onclick="downloadPDF()" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-xs">
-                            <i data-lucide="download" class="w-3.5 h-3.5 mr-1.5 text-slate-500"></i>
+                        <button onclick="openSourceGrounding()" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-[#1b3658] bg-white border border-[#dce8f4] rounded-xl hover:bg-[#f0f7fc] transition-colors shadow-xs">
+                            <i data-lucide="columns" class="w-3.5 h-3.5 mr-1.5 text-[#2b7fb3]"></i>
+                            Compare with Original
+                        </button>
+                        <button onclick="downloadPDF()" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-[#1b3658] bg-white border border-[#dce8f4] rounded-xl hover:bg-[#f0f7fc] transition-colors shadow-xs">
+                            <i data-lucide="download" class="w-3.5 h-3.5 mr-1.5 text-[#8eafd2]"></i>
                             Download PDF
                         </button>
                     </div>
                 </div>
 
                 <!-- Overall Message Card -->
-                <div id="overall-status-card" class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-2">
+                <div id="overall-status-card" class="bg-white border border-[#dce8f4] rounded-2xl p-6 shadow-sm space-y-2">
                     <div class="flex items-center space-x-2">
                         <span id="status-indicator-dot" class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                        <h3 id="banner-title" class="text-base font-bold text-slate-900">Routine Finding Identified</h3>
+                        <h3 id="banner-title" class="text-base font-bold text-[#0f1f38]">Routine Finding Identified</h3>
                     </div>
-                    <p id="banner-subtitle" class="text-xs text-slate-600 leading-relaxed pl-4">No concerning findings identified in this scan.</p>
+                    <p id="banner-subtitle" class="text-xs text-[#486581] leading-relaxed pl-4">No concerning findings identified in this scan.</p>
                 </div>
 
                 <!-- Key Findings Section -->
-                <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Key Finding</h3>
+                <div class="bg-white border border-[#dce8f4] rounded-2xl p-6 shadow-sm space-y-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-[#8eafd2]">Key Finding</h3>
                     <div id="key-findings-container" class="space-y-4">
                         <!-- Dynamic findings inserted here -->
                     </div>
                 </div>
 
                 <!-- Section: What Should I Know? -->
-                <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-3">
-                    <h3 class="text-sm font-bold text-slate-900 flex items-center">
-                        <i data-lucide="help-circle" class="w-4 h-4 mr-2 text-teal-600"></i>
+                <div class="bg-white border border-[#dce8f4] rounded-2xl p-6 shadow-sm space-y-3">
+                    <h3 class="text-sm font-bold text-[#0f1f38] flex items-center">
+                        <i data-lucide="help-circle" class="w-4 h-4 mr-2 text-[#2b7fb3]"></i>
                         What should I know?
                     </h3>
-                    <ul id="what-to-know-list" class="space-y-2 text-xs text-slate-600 pl-1">
+                    <ul id="what-to-know-list" class="space-y-2 text-xs text-[#334e68] pl-1">
                         <!-- Dynamic bullets inserted here -->
                     </ul>
                 </div>
 
                 <!-- Section: What to do next -->
-                <div class="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="bg-white border border-[#dce8f4] rounded-2xl p-6 shadow-sm space-y-4">
                     <div class="flex items-start justify-between">
                         <div>
-                            <h3 class="text-sm font-bold text-slate-900 flex items-center">
-                                <i data-lucide="arrow-right-circle" class="w-4 h-4 mr-2 text-teal-600"></i>
+                            <h3 class="text-sm font-bold text-[#0f1f38] flex items-center">
+                                <i data-lucide="arrow-right-circle" class="w-4 h-4 mr-2 text-[#2b7fb3]"></i>
                                 What to do next
                             </h3>
-                            <p id="primary-next-step" class="text-xs text-slate-600 mt-1">Discuss this finding with your doctor at your next appointment.</p>
+                            <p id="primary-next-step" class="text-xs text-[#486581] mt-1">Discuss this finding with your doctor at your next appointment.</p>
                         </div>
                     </div>
 
                     <!-- Checklist -->
-                    <ul id="checklist-items" class="space-y-2 pt-2 border-t border-slate-100">
+                    <ul id="checklist-items" class="space-y-2 pt-2 border-t border-[#dce8f4]">
                         <!-- Dynamic checklist items -->
                     </ul>
 
                     <!-- Secondary Link for Doctor Questions -->
-                    <div class="pt-2 border-t border-slate-100">
-                        <button onclick="toggleDoctorQuestions()" class="text-xs font-semibold text-teal-700 hover:text-teal-800 flex items-center py-1 outline-none group">
+                    <div class="pt-2 border-t border-[#dce8f4]">
+                        <button onclick="toggleDoctorQuestions()" class="text-xs font-semibold text-[#1b567a] hover:text-[#0f1f38] flex items-center py-1 outline-none group">
                             <span>Questions to ask your doctor</span>
                             <i id="doctor-questions-arrow" data-lucide="chevron-right" class="w-4 h-4 ml-1 transition-transform"></i>
                         </button>
 
-                        <div id="doctor-questions-panel" class="hidden mt-3 space-y-2 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
-                            <div class="font-bold text-slate-900 mb-2">Suggested questions for your consultation:</div>
-                            <ol id="doctor-questions-list" class="space-y-2 pl-4 list-decimal marker:text-teal-600">
+                        <div id="doctor-questions-panel" class="hidden mt-3 space-y-2 text-xs text-[#284e7e] bg-[#f0f7fc] p-4 rounded-xl border border-[#dce8f4]">
+                            <div class="font-bold text-[#0f1f38] mb-2">Suggested questions for your consultation:</div>
+                            <ol id="doctor-questions-list" class="space-y-2 pl-4 list-decimal marker:text-[#2b7fb3]">
                                 <!-- Dynamic doctor questions -->
                             </ol>
                         </div>
@@ -251,8 +397,8 @@
 
                 <!-- Progressive Disclosure: Technical Medical Details -->
                 <div class="pt-2">
-                    <button onclick="toggleTechnicalDetails()" class="text-xs font-medium text-slate-500 hover:text-slate-700 flex items-center py-1 outline-none">
-                        <i data-lucide="file-text" class="w-4 h-4 mr-1.5 text-slate-400"></i>
+                    <button onclick="toggleTechnicalDetails()" class="text-xs font-medium text-[#627d98] hover:text-[#0f1f38] flex items-center py-1 outline-none">
+                        <i data-lucide="file-text" class="w-4 h-4 mr-1.5 text-[#8eafd2]"></i>
                         <span>View medical details</span>
                         <i id="tech-details-arrow" data-lucide="chevron-down" class="w-3.5 h-3.5 ml-1 transition-transform"></i>
                     </button>
@@ -265,8 +411,8 @@
                 </div>
 
                 <!-- Subtle Medical Disclaimer -->
-                <div class="pt-6 border-t border-slate-200/60 text-center">
-                    <p class="text-[11px] text-slate-400">
+                <div class="pt-6 border-t border-[#dce8f4] text-center">
+                    <p class="text-[11px] text-[#8eafd2]">
                         This summary helps explain your report. It does not replace advice from your doctor.
                     </p>
                 </div>
@@ -277,8 +423,46 @@
 
     </main>
 
+    <!-- Source Grounding Modal -->
+    <div id="source-grounding-overlay" class="source-modal-overlay" onclick="closeSourceGrounding(event)">
+        <div class="source-modal">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-[#dce8f4] bg-[#f0f7fc]">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="columns" class="w-5 h-5 text-[#2b7fb3]"></i>
+                    <h3 class="text-sm font-bold text-[#0f1f38]">Compare with Original Report</h3>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-[11px] text-[#627d98]">Click any finding on the right to highlight it in the source</span>
+                    <button onclick="closeSourceGrounding(event, true)" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[#dce8f4] transition-colors">
+                        <i data-lucide="x" class="w-4 h-4 text-[#627d98]"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-0 flex-1 overflow-hidden" style="max-height: calc(85vh - 60px);">
+                <!-- Left: Original Report -->
+                <div class="border-r border-[#dce8f4] flex flex-col">
+                    <div class="px-4 py-2.5 bg-[#0f1f38] text-white text-[11px] font-bold uppercase tracking-wider flex items-center">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5 mr-2 text-[#5faed5]"></i>
+                        Original Doctor's Report
+                    </div>
+                    <div id="source-report-text" class="p-5 text-xs text-[#0f1f38] leading-relaxed overflow-y-auto font-mono whitespace-pre-wrap" style="max-height: calc(85vh - 110px);">
+                    </div>
+                </div>
+                <!-- Right: Patient Summary Findings -->
+                <div class="flex flex-col">
+                    <div class="px-4 py-2.5 bg-[#2b7fb3] text-white text-[11px] font-bold uppercase tracking-wider flex items-center">
+                        <i data-lucide="heart" class="w-3.5 h-3.5 mr-2 text-white"></i>
+                        Patient-Friendly Summary
+                    </div>
+                    <div id="source-summary-findings" class="p-5 space-y-4 overflow-y-auto" style="max-height: calc(85vh - 110px);">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
-    <footer class="bg-white border-t border-slate-200/80 py-4 text-center text-[11px] text-slate-400 mt-auto">
+    <footer class="bg-[#0f1f38] border-t border-[#1b3658] py-4 text-center text-[11px] text-[#8eafd2] mt-auto">
         <div class="max-w-6xl mx-auto px-4">
             ClarityMed Navigator • Educational tool for patients and families
         </div>
@@ -290,6 +474,69 @@
         lucide.createIcons();
 
         let currentSummaryData = null;
+
+        // ─── Medical Glossary Dictionary ─────────────────────────────────
+        const MEDICAL_GLOSSARY = {
+            'adenoma': 'A non-cancerous (benign) growth or tumor that forms in gland tissue.',
+            'adrenal': 'A small gland located on top of each kidney that produces hormones.',
+            'anemia': 'A condition where the blood has fewer red blood cells or less hemoglobin than normal, causing fatigue.',
+            'aneurysm': 'A bulge or ballooning in the wall of a blood vessel, which can be dangerous if it ruptures.',
+            'attenuation': 'How dense something appears on a CT scan. Low attenuation means it looks darker than surrounding tissue.',
+            'benign': 'Not cancerous. A benign growth does not spread to other parts of the body.',
+            'brainstem': 'The lower part of the brain connecting to the spinal cord, controlling basic life functions like breathing.',
+            'cerebellum': 'The part of the brain at the back of the head that controls balance and coordination.',
+            'cerebrum': 'The largest part of the brain, responsible for thinking, memory, and voluntary movement.',
+            'centrilobular': 'Located in the center of a small unit of the lung (lobule). Often used to describe a pattern of lung changes.',
+            'consolidation': 'An area in the lung where air is replaced by fluid or other material, often seen in infections like pneumonia.',
+            'creatinine': 'A waste product from muscles filtered by the kidneys. Used to measure how well kidneys are working.',
+            'effusion': 'An abnormal collection of fluid in a body cavity (e.g., around the lungs or heart).',
+            'emphysema': 'Lung damage where the air sacs (alveoli) are destroyed, making it harder to breathe.',
+            'ferritin': 'A blood protein that stores iron. Low ferritin means low iron reserves in the body.',
+            'hematocrit': 'The percentage of blood volume made up of red blood cells.',
+            'hemoglobin': 'The protein in red blood cells that carries oxygen throughout the body.',
+            'hemorrhage': 'Bleeding, especially heavy or uncontrolled bleeding inside the body.',
+            'hyperintensities': 'Bright spots seen on MRI scans, which can indicate various conditions depending on location.',
+            'hypochromic': 'Red blood cells that are paler than normal, often seen in iron deficiency anemia.',
+            'incidental': 'Found unexpectedly during a test done for a different reason; not the main focus of the exam.',
+            'infarction': 'Death of tissue due to lack of blood supply, commonly referring to a stroke or heart attack.',
+            'ischemia': 'Reduced blood flow to a body part, which can cause tissue damage if prolonged.',
+            'leukocytosis': 'An elevated white blood cell count, often a sign of infection or inflammation.',
+            'lymphadenopathy': 'Swollen or enlarged lymph nodes, which can be caused by infection, inflammation, or cancer.',
+            'mass effect': 'Pressure or displacement of brain structures caused by a tumor, swelling, or bleeding.',
+            'mcv': 'Mean Corpuscular Volume — the average size of red blood cells. Low MCV suggests iron deficiency.',
+            'mediastinal': 'Related to the mediastinum, the central area of the chest between the lungs.',
+            'microcytic': 'Red blood cells that are smaller than normal, commonly associated with iron deficiency.',
+            'midline shift': 'When brain structures are pushed to one side, usually by swelling or a mass — a serious sign.',
+            'mucosal thickening': 'Swelling of the moist inner lining of body cavities (e.g., sinuses), often from inflammation.',
+            'nodule': 'A small, rounded lump or growth in tissue. Many nodules are benign (non-cancerous).',
+            'opacity': 'An area on an X-ray or CT scan that appears white or cloudy, indicating something solid or fluid-filled.',
+            'parenchyma': 'The functional tissue of an organ (e.g., brain parenchyma = the brain tissue itself).',
+            'pericardial': 'Related to the pericardium, the fluid-filled sac surrounding the heart.',
+            'pertinent negative': 'A specific condition that was looked for and confirmed NOT to be present — an important finding.',
+            'platelets': 'Tiny blood cells that help your blood clot to stop bleeding.',
+            'pleural': 'Related to the pleura, the thin membrane surrounding the lungs.',
+            'pneumothorax': 'A collapsed lung caused by air leaking into the space between the lung and chest wall.',
+            'pulmonary embolism': 'A blood clot that travels to the lungs and blocks blood flow — a medical emergency.',
+            'sulci': 'The grooves or folds on the surface of the brain.',
+            'ventricles': 'In the brain: fluid-filled cavities. In the heart: the lower pumping chambers.',
+            'wbc': 'White Blood Cells — immune cells that fight infection in the body.',
+            'rbc': 'Red Blood Cells — cells that carry oxygen from the lungs to the rest of the body.'
+        };
+
+        // ─── Lab Reference Ranges ────────────────────────────────────────
+        const LAB_REFERENCE_RANGES = {
+            'hemoglobin': { unit: 'g/dL', low: 12.0, high: 15.5, absLow: 6, absHigh: 20 },
+            'hematocrit': { unit: '%', low: 37.0, high: 48.0, absLow: 20, absHigh: 60 },
+            'rbc count': { unit: 'x10^6/uL', low: 4.2, high: 5.4, absLow: 2.5, absHigh: 7.0 },
+            'mcv': { unit: 'fL', low: 80, high: 100, absLow: 50, absHigh: 130 },
+            'wbc count': { unit: 'x10^3/uL', low: 4.5, high: 11.0, absLow: 1, absHigh: 20 },
+            'platelets': { unit: 'x10^3/uL', low: 150, high: 450, absLow: 50, absHigh: 600 },
+            'ferritin': { unit: 'ng/mL', low: 20, high: 200, absLow: 0, absHigh: 350 },
+            'bun': { unit: 'mg/dL', low: 7, high: 20, absLow: 0, absHigh: 40 },
+            'creatinine': { unit: 'mg/dL', low: 0.6, high: 1.2, absLow: 0, absHigh: 3.0 },
+            'ast': { unit: 'U/L', low: 10, high: 40, absLow: 0, absHigh: 80 },
+            'alt': { unit: 'U/L', low: 7, high: 56, absLow: 0, absHigh: 100 }
+        };
 
         function getApiUrl(path) {
             if (window.location.protocol === 'file:' || (!window.location.host.includes('127.0.0.1') && !window.location.host.includes('localhost'))) {
@@ -307,13 +554,242 @@
             }
         }
 
+        // ─── Medical Tooltip Injection ───────────────────────────────────
+        const SKIP_TAGS = new Set(['INPUT', 'TEXTAREA', 'BUTTON', 'SELECT', 'SCRIPT', 'STYLE', 'CODE', 'PRE']);
+        function injectMedicalTooltips(container) {
+            const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null, false);
+            const textNodes = [];
+            while (walker.nextNode()) {
+                const parent = walker.currentNode.parentElement;
+                if (!parent) continue;
+                // Skip interactive/code elements and already-wrapped terms
+                if (SKIP_TAGS.has(parent.tagName)) continue;
+                if (parent.classList.contains('med-term') || parent.classList.contains('med-tooltip')) continue;
+                textNodes.push(walker.currentNode);
+            }
+
+            textNodes.forEach(node => {
+                let html = node.textContent;
+                let modified = false;
+                for (const [term, definition] of Object.entries(MEDICAL_GLOSSARY)) {
+                    // Escape any regex special chars in the term itself (e.g. spaces, dots)
+                    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    // For multi-word terms, allow flexible whitespace between words
+                    const flexTerm = escapedTerm.replace(/\\ /g, '\\s+');
+                    const regex = new RegExp(`(?<![\\w-])(${flexTerm})(?![\\w-])`, 'gi');
+                    if (regex.test(html)) {
+                        // Escape definition so it is safe inside an attribute or inner span
+                        const safeDef = definition.replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+                        html = html.replace(regex, `<span class="med-term">$1<span class="med-tooltip">${safeDef}</span></span>`);
+                        modified = true;
+                    }
+                }
+                if (modified) {
+                    const span = document.createElement('span');
+                    span.innerHTML = html;
+                    node.parentNode.replaceChild(span, node);
+                }
+            });
+        }
+
+        // ─── Reference Range Gauge Builder ───────────────────────────────
+        function escapeRegex(str) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function extractLabValues(rawText) {
+            const results = [];
+            const seen = new Set();
+            const lines = rawText.split('\n');
+            for (const line of lines) {
+                for (const [labName, ref] of Object.entries(LAB_REFERENCE_RANGES)) {
+                    if (seen.has(labName)) continue; // avoid duplicates
+                    const namePattern = labName.replace(/\s+/g, '[\\s:]*');
+                    // Properly escape special regex chars in the unit string
+                    const escapedUnit = escapeRegex(ref.unit);
+                    const regex = new RegExp(namePattern + '[:\\s]+([\\d.]+)\\s*' + escapedUnit, 'i');
+                    const match = line.match(regex);
+                    if (match) {
+                        seen.add(labName);
+                        results.push({
+                            name: labName.charAt(0).toUpperCase() + labName.slice(1),
+                            value: parseFloat(match[1]),
+                            unit: ref.unit,
+                            refLow: ref.low,
+                            refHigh: ref.high,
+                            absLow: ref.absLow,
+                            absHigh: ref.absHigh
+                        });
+                    }
+                }
+            }
+            return results;
+        }
+
+        function buildGaugeHTML(lab) {
+            const range = lab.absHigh - lab.absLow;
+            const normalStart = ((lab.refLow - lab.absLow) / range) * 100;
+            const normalEnd = ((lab.refHigh - lab.absLow) / range) * 100;
+            const markerPos = Math.max(2, Math.min(98, ((lab.value - lab.absLow) / range) * 100));
+
+            let statusColor, statusText;
+            if (lab.value < lab.refLow) {
+                statusColor = '#f59e0b';
+                statusText = 'Below Normal';
+            } else if (lab.value > lab.refHigh) {
+                statusColor = '#ef4444';
+                statusText = 'Above Normal';
+            } else {
+                statusColor = '#10b981';
+                statusText = 'Normal';
+            }
+
+            return `
+                <div class="mt-2 p-3 bg-white rounded-lg border border-[#dce8f4]">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[11px] font-bold text-[#0f1f38]">${lab.name}</span>
+                        <span class="text-[11px] font-bold" style="color: ${statusColor}">${lab.value} ${lab.unit} · ${statusText}</span>
+                    </div>
+                    <div class="range-gauge" style="background: linear-gradient(to right, #fbbf24 0%, #fbbf24 ${normalStart}%, #34d399 ${normalStart}%, #34d399 ${normalEnd}%, #f87171 ${normalEnd}%, #f87171 100%);">
+                        <div class="gauge-marker" style="left: ${markerPos}%; background: ${statusColor};"></div>
+                    </div>
+                    <div class="gauge-labels" style="display:flex; justify-content:space-between; margin-top:4px; font-size:9px; color:#627d98;">
+                        <span>Low (&lt;${lab.refLow})</span>
+                        <span>Normal (${lab.refLow}–${lab.refHigh} ${lab.unit})</span>
+                        <span>High (&gt;${lab.refHigh})</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderLabGauges(rawText) {
+            const labs = extractLabValues(rawText);
+            if (labs.length === 0) return;
+
+            // Build entire HTML string first to avoid repeated innerHTML reassignment
+            let gaugeSectionHTML = `
+                <div class="flex items-center mb-2">
+                    <i data-lucide="activity" class="w-4 h-4 mr-2 text-[#2b7fb3]"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider text-[#8eafd2]">Lab Value Reference Ranges</span>
+                </div>
+            `;
+            labs.forEach(lab => {
+                gaugeSectionHTML += buildGaugeHTML(lab);
+            });
+
+            const keyFindingsContainer = document.getElementById('key-findings-container');
+            const gaugeSection = document.createElement('div');
+            gaugeSection.className = "space-y-1 border-t border-[#dce8f4] pt-4 mt-2";
+            gaugeSection.innerHTML = gaugeSectionHTML;
+            keyFindingsContainer.appendChild(gaugeSection);
+        }
+
+        // ─── Source Grounding Modal ──────────────────────────────────────
+        function openSourceGrounding() {
+            if (!currentSummaryData) return;
+            const overlay = document.getElementById('source-grounding-overlay');
+            const reportEl = document.getElementById('source-report-text');
+            const summaryEl = document.getElementById('source-summary-findings');
+
+            // Fill left panel with raw report text
+            reportEl.textContent = currentSummaryData.raw_text || '';
+
+            // Fill right panel with clickable findings
+            summaryEl.innerHTML = '';
+            const findings = currentSummaryData.summary.findings || [];
+            findings.forEach((finding, idx) => {
+                const card = document.createElement('div');
+                card.className = "p-3 rounded-xl border border-[#dce8f4] bg-[#f0f7fc] cursor-pointer hover:border-[#2b7fb3] transition-all text-xs";
+                card.onclick = () => highlightInSource(finding, reportEl);
+                card.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-[#0f1f38]">${finding.organ}</span>
+                        <span class="text-[10px] text-[#2b7fb3] font-medium">Click to highlight source ↗</span>
+                    </div>
+                    <p class="text-[#486581] leading-relaxed">${finding.simple_explanation}</p>
+                    ${finding.clinical_drawer.measurements && finding.clinical_drawer.measurements !== 'None reported' && !finding.clinical_drawer.measurements.includes('None reported')
+                        ? `<div class="mt-1 text-[11px] text-[#1b567a] font-mono">📏 ${finding.clinical_drawer.measurements}</div>` : ''}
+                `;
+                summaryEl.appendChild(card);
+            });
+
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            lucide.createIcons();
+        }
+
+        function highlightInSource(finding, reportEl) {
+            // Remove existing highlights
+            const raw = currentSummaryData.raw_text || '';
+            reportEl.innerHTML = '';
+
+            // Build search phrases from the finding's clinical drawer
+            const searchPhrases = [];
+            if (finding.clinical_drawer.exact_impression) {
+                // Split impression into searchable sentence fragments
+                const fragments = finding.clinical_drawer.exact_impression.split(/[.;]+/).map(s => s.trim()).filter(s => s.length > 10);
+                searchPhrases.push(...fragments);
+            }
+            // Also try measurements
+            if (finding.clinical_drawer.measurements && finding.clinical_drawer.measurements !== 'None reported') {
+                const mParts = finding.clinical_drawer.measurements.split(',').map(s => s.trim()).filter(s => s.length > 3);
+                searchPhrases.push(...mParts);
+            }
+
+            // Highlight matching regions in the raw text
+            let highlightedText = escapeRegex(raw).replace(/\n/g, '\n'); // preserve newlines
+            // Work on the raw text directly (no escaping), just escape each word for safe regex
+            highlightedText = raw;
+            const alreadyHighlighted = new Set();
+            searchPhrases.forEach(phrase => {
+                const words = phrase.split(/\s+/).filter(w => w.length > 2);
+                // Try to match consecutive word sequences of decreasing length
+                for (let len = words.length; len >= Math.min(3, words.length); len--) {
+                    for (let start = 0; start <= words.length - len; start++) {
+                        // Escape each word individually, join with flexible \s+ for whitespace
+                        const escapedWords = words.slice(start, start + len).map(w => escapeRegex(w));
+                        const subPhrase = escapedWords.join('\\s+');
+                        try {
+                            const regex = new RegExp('(' + subPhrase + ')', 'gi');
+                            const testMatch = highlightedText.match(regex);
+                            if (testMatch && !alreadyHighlighted.has(testMatch[0].toLowerCase())) {
+                                alreadyHighlighted.add(testMatch[0].toLowerCase());
+                                highlightedText = highlightedText.replace(regex, '<span class="source-highlight">$1</span>');
+                            }
+                        } catch(e) {
+                            // Silently skip any regex that fails to compile
+                        }
+                    }
+                }
+            });
+
+            reportEl.innerHTML = highlightedText;
+
+            // Scroll to first highlight
+            const firstHL = reportEl.querySelector('.source-highlight');
+            if (firstHL) {
+                firstHL.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function closeSourceGrounding(event, force) {
+            if (force || event.target === document.getElementById('source-grounding-overlay')) {
+                document.getElementById('source-grounding-overlay').classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // ─── Core Application Logic ──────────────────────────────────────
+
         async function loadSample(sampleKey) {
             document.querySelectorAll('.sample-btn').forEach(btn => {
-                btn.classList.remove('border-teal-500', 'bg-teal-50/60');
+                btn.classList.remove('border-[#2b7fb3]', 'bg-[#f0f7fc]');
+                btn.classList.add('border-[#dce8f4]', 'bg-white');
             });
             const selectedBtn = document.getElementById(`btn-${sampleKey}`);
             if (selectedBtn) {
-                selectedBtn.classList.add('border-teal-500', 'bg-teal-50/60');
+                selectedBtn.classList.remove('border-[#dce8f4]', 'bg-white');
+                selectedBtn.classList.add('border-[#2b7fb3]', 'bg-[#f0f7fc]');
             }
 
             document.getElementById('file-input').value = '';
@@ -429,18 +905,23 @@
 
             summary.findings.forEach((finding, idx) => {
                 const card = document.createElement('div');
-                card.className = "space-y-2 border-b border-slate-100 last:border-0 pb-4 last:pb-0";
+                card.className = "space-y-2 border-b border-[#dce8f4] last:border-0 pb-4 last:pb-0";
 
                 card.innerHTML = `
                     <div class="flex items-baseline justify-between">
-                        <h4 class="text-sm font-bold text-slate-900">${finding.organ}</h4>
-                        ${finding.visual_analogy ? `<span class="text-xs font-semibold text-teal-800 bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-md">${finding.visual_analogy}</span>` : ''}
+                        <h4 class="text-sm font-bold text-[#0f1f38]">${finding.organ}</h4>
+                        ${finding.visual_analogy ? `<span class="text-xs font-semibold text-[#1b567a] bg-[#f0f7fc] border border-[#c2dfef] px-2.5 py-0.5 rounded-md">${finding.visual_analogy}</span>` : ''}
                     </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">${finding.simple_explanation}</p>
+                    <p class="text-xs text-[#486581] leading-relaxed finding-text">${finding.simple_explanation}</p>
                 `;
 
                 keyFindingsContainer.appendChild(card);
             });
+
+            // Render lab gauges if raw_text contains lab values
+            if (data.raw_text) {
+                renderLabGauges(data.raw_text);
+            }
 
             // What Should I Know? Bullets
             const whatToKnowList = document.getElementById('what-to-know-list');
@@ -450,12 +931,12 @@
                 summary.findings.forEach(finding => {
                     const li = document.createElement('li');
                     li.className = "flex items-start";
-                    li.innerHTML = `<span class="text-teal-600 font-bold mr-2">•</span><span>${finding.organ}: ${finding.simple_explanation}</span>`;
+                    li.innerHTML = `<span class="text-[#2b7fb3] font-bold mr-2">•</span><span>${finding.organ}: ${finding.simple_explanation}</span>`;
                     whatToKnowList.appendChild(li);
                 });
             } else {
                 const li = document.createElement('li');
-                li.className = "text-slate-500";
+                li.className = "text-[#627d98]";
                 li.textContent = "Your report does not describe any concerning findings.";
                 whatToKnowList.appendChild(li);
             }
@@ -465,9 +946,9 @@
             checklistContainer.innerHTML = '';
             summary.patient_checklist.forEach(item => {
                 const li = document.createElement('li');
-                li.className = "flex items-start space-x-2.5 text-xs text-slate-700";
+                li.className = "flex items-start space-x-2.5 text-xs text-[#284e7e]";
                 li.innerHTML = `
-                    <input type="checkbox" class="mt-0.5 rounded text-teal-600 focus:ring-teal-500/20 cursor-pointer">
+                    <input type="checkbox" class="mt-0.5 rounded text-[#2b7fb3] focus:ring-[#2b7fb3]/20 cursor-pointer">
                     <span class="leading-relaxed">${item}</span>
                 `;
                 checklistContainer.appendChild(li);
@@ -478,7 +959,7 @@
             questionsContainer.innerHTML = '';
             summary.doctor_questions.forEach(q => {
                 const li = document.createElement('li');
-                li.className = "leading-relaxed";
+                li.className = "leading-relaxed text-[#284e7e]";
                 li.textContent = q;
                 questionsContainer.appendChild(li);
             });
@@ -489,30 +970,30 @@
             summary.findings.forEach((finding, idx) => {
                 const drawer = finding.clinical_drawer;
                 const drawerDiv = document.createElement('div');
-                drawerDiv.className = "bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-3 text-xs text-slate-700";
+                drawerDiv.className = "bg-[#f0f7fc] rounded-xl p-4 border border-[#dce8f4] space-y-3 text-xs text-[#284e7e]";
 
                 const pertinentNegativesHTML = drawer.pertinent_negatives && drawer.pertinent_negatives.length > 0
-                    ? drawer.pertinent_negatives.map(n => `<span class="inline-block bg-white text-slate-700 text-[11px] px-2 py-0.5 rounded border border-slate-200 mr-1 mb-1">✓ ${n}</span>`).join('')
-                    : '<span class="text-slate-400">None listed</span>';
+                    ? drawer.pertinent_negatives.map(n => `<span class="inline-block bg-white text-[#1b3658] text-[11px] px-2 py-0.5 rounded border border-[#dce8f4] mr-1 mb-1">✓ ${n}</span>`).join('')
+                    : '<span class="text-[#8eafd2]">None listed</span>';
 
                 drawerDiv.innerHTML = `
-                    <div class="font-bold text-slate-900 border-b border-slate-200/60 pb-1">${finding.organ} — Medical Reference</div>
+                    <div class="font-bold text-[#0f1f38] border-b border-[#dce8f4] pb-1">${finding.organ} — Medical Reference</div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                         <div>
-                            <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400">Measurements</span>
-                            <span class="font-mono text-slate-800">${drawer.measurements}</span>
+                            <span class="font-semibold block text-[11px] uppercase tracking-wider text-[#8eafd2]">Measurements</span>
+                            <span class="font-mono text-[#0f1f38]">${drawer.measurements}</span>
                         </div>
                         <div>
-                            <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400">Clinical Recommendation</span>
-                            <span>${drawer.clinical_action}</span>
+                            <span class="font-semibold block text-[11px] uppercase tracking-wider text-[#8eafd2]">Clinical Recommendation</span>
+                            <span class="text-[#1b3658]">${drawer.clinical_action}</span>
                         </div>
                     </div>
                     <div>
-                        <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Exact Report Wording</span>
-                        <blockquote class="border-l-2 border-slate-300 pl-2.5 italic text-slate-600 bg-white p-2 rounded-r-md">"${drawer.exact_impression}"</blockquote>
+                        <span class="font-semibold block text-[11px] uppercase tracking-wider text-[#8eafd2] mb-0.5">Exact Report Wording</span>
+                        <blockquote class="border-l-2 border-[#2b7fb3] pl-2.5 italic text-[#486581] bg-white p-2 rounded-r-md">"${drawer.exact_impression}"</blockquote>
                     </div>
                     <div>
-                        <span class="font-semibold text-slate-900 block text-[11px] uppercase tracking-wider text-slate-400 mb-1">Relevant Negatives</span>
+                        <span class="font-semibold block text-[11px] uppercase tracking-wider text-[#8eafd2] mb-1">Relevant Negatives</span>
                         <div>${pertinentNegativesHTML}</div>
                     </div>
                 `;
@@ -521,6 +1002,11 @@
 
             // Re-initialize Lucide icons
             lucide.createIcons();
+
+            // Inject medical term tooltips into the results container
+            setTimeout(() => {
+                injectMedicalTooltips(document.getElementById('results-container'));
+            }, 100);
         }
 
         function toggleDoctorQuestions() {
@@ -550,6 +1036,11 @@
         function downloadPDF() {
             window.print();
         }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeSourceGrounding(e, true);
+        });
     </script>
 </body>
 </html>

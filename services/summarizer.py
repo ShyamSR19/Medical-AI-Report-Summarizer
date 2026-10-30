@@ -2,10 +2,19 @@ import os
 import sys
 import json
 import unicodedata
-from typing import List, Literal
+import requests
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 from groq import Groq
 from dotenv import load_dotenv
+
+# Try importing Google GenAI SDK if available
+try:
+    from google import genai
+    from google.genai import types
+    HAS_GOOGLE_GENAI = True
+except ImportError:
+    HAS_GOOGLE_GENAI = False
 
 # Force UTF-8 on Windows stdout to prevent charmap errors when printing LLM output
 if hasattr(sys.stdout, 'reconfigure'):
@@ -13,7 +22,8 @@ if hasattr(sys.stdout, 'reconfigure'):
 if hasattr(sys.stderr, 'reconfigure'):
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".env")
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(project_root, ".env")
 load_dotenv(dotenv_path=env_path)
 
 
@@ -141,9 +151,8 @@ def _build_json_schema() -> dict:
 def _sanitize_unicode(text: str) -> str:
     """
     Replaces non-ASCII Unicode characters that Windows charmap can't handle
-    with safe ASCII equivalents (e.g. non-breaking hyphens → regular hyphens).
+    with safe ASCII equivalents.
     """
-    # Common problem characters and their safe replacements
     replacements = {
         '\u2011': '-',   # non-breaking hyphen
         '\u2010': '-',   # hyphen
@@ -162,8 +171,27 @@ def _sanitize_unicode(text: str) -> str:
     }
     for char, replacement in replacements.items():
         text = text.replace(char, replacement)
-    # Final fallback: encode to ASCII ignoring anything remaining
     return text.encode('ascii', errors='replace').decode('ascii')
+
+
+def _extract_json_string(text: str) -> str:
+    """
+    Extracts JSON substring if wrapped in markdown codeblocks (```json ... ```)
+    or extraneous preambles/postscripts.
+    """
+    text = text.strip()
+    if "```json" in text:
+        parts = text.split("```json", 1)[1]
+        text = parts.split("```", 1)[0].strip()
+    elif "```" in text:
+        parts = text.split("```", 1)[1]
+        text = parts.split("```", 1)[0].strip()
+    else:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            text = text[start:end + 1].strip()
+    return text
 
 
 SYSTEM_PROMPT = """You are an expert clinical AI assistant that explains medical reports to patients with strict, uncompromising faithfulness to the source document.
@@ -171,19 +199,12 @@ SYSTEM_PROMPT = """You are an expert clinical AI assistant that explains medical
 CRITICAL IDENTITY AND PURPOSE:
 - You are an EXPLANATION TOOL, NOT a medical decision-making system.
 - Your purpose is to explain what the report says, preserve the report's exact degree of uncertainty, and surface the report's own recommendations without inventing additional medical instructions.
+- Be objective, crisp, and concise. Do NOT be verbose, flowery, conversational, or overly wordy. Keep each explanation direct and strictly grounded in the report text.
 - Always output valid JSON conforming strictly to the requested schema."""
 
 
-def summarize_report(raw_text: str) -> MedicalSummary:
-    """
-    Translates a clinical medical report for patients using Groq API, strictly faithful to the source document.
-    """
-    groq_api_key = os.getenv("GROQ_API_KEY")
-
-    if not groq_api_key:
-        raise RuntimeError("GROQ_API_KEY is not set in your .env file.")
-
-    prompt = f"""Translate the following clinical medical report into clear, patient-accessible language while adhering STRICTLY to all non-negotiable faithfulness rules below:
+def _build_prompt(raw_text: str) -> str:
+    return f"""Translate the following clinical medical report into clear, patient-accessible language while adhering STRICTLY to all non-negotiable faithfulness rules below:
 
 === CORE MANDATE: STRICT FAITHFULNESS TO SOURCE REPORT ===
 
@@ -223,8 +244,9 @@ def summarize_report(raw_text: str) -> MedicalSummary:
 7. AVOID EMOTIONALLY ALARMING LANGUAGE:
 - Do not automatically introduce words like "cancer", "dangerous", or "serious" unless the source report explicitly establishes or strongly discusses that diagnosis.
 
-8. MEDICALLY FAITHFUL TRANSLATION:
-- Simplify terminology to 6th-8th grade reading level without altering the medical meaning, certainty, or scope.
+8. MEDICALLY FAITHFUL & CONCISE TRANSLATION:
+- Simplify terminology to 6th-8th grade reading level without altering medical meaning, certainty, or scope.
+- Keep simple_explanation concise and direct (1-2 sentences per finding). Avoid conversational fluff, padding, or excessive verbosity.
 
 9. CLEARLY DISTINGUISH INCIDENTAL FINDINGS:
 - For incidental findings, clearly label them (e.g. in the organ field: "Left Adrenal Gland (Incidental Finding)") so they are not confused with primary indications.
@@ -258,15 +280,17 @@ Medical Report to Translate:
 
 Respond with valid JSON matching the schema."""
 
+
+# ─── Model Callers ────────────────────────────────────────────────────────────
+
+def _call_groq(groq_api_key: str, model_name: str, prompt: str) -> str:
+    """Calls Groq API with json_schema, falling back to json_object if needed."""
+    client = Groq(api_key=groq_api_key)
     try:
-        client = Groq(api_key=groq_api_key)
         response = client.chat.completions.create(
-            model="openai/gpt-oss-120b",
+            model=model_name,
             messages=[
-                {
-                    "role": "system",
-                    "content": SYSTEM_PROMPT
-                },
+                {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": prompt}
             ],
             response_format={
@@ -276,12 +300,141 @@ Respond with valid JSON matching the schema."""
             temperature=0.0,
             max_tokens=4096
         )
-        raw_json = response.choices[0].message.content
-        raw_json_clean = _sanitize_unicode(raw_json)
-        summary = MedicalSummary.model_validate_json(raw_json_clean)
-        return summary
-    except Exception as groq_err:
-        safe_err = str(groq_err).encode('ascii', errors='replace').decode('ascii')
-        raise RuntimeError(f"Groq API Error: {safe_err}")
+        return response.choices[0].message.content
+    except Exception:
+        # Fallback to json_object format
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.0,
+            max_tokens=4096
+        )
+        return response.choices[0].message.content
+
+
+def _call_gemini(gemini_api_key: str, prompt: str) -> str:
+    """Calls Google Gemini API with fallback across model versions."""
+    models_to_try = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-flash-latest", "gemini-2.5-flash", "gemini-1.5-flash"]
+    last_err = None
+
+    for model_name in models_to_try:
+        # 1. Try Google GenAI SDK if available
+        if HAS_GOOGLE_GENAI:
+            try:
+                client = genai.Client(api_key=gemini_api_key)
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        system_instruction=SYSTEM_PROMPT,
+                        temperature=0.0
+                    )
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as sdk_err:
+                last_err = sdk_err
+
+        # 2. Try REST API fallback
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_api_key}"
+            payload = {
+                "system_instruction": {
+                    "parts": [{"text": SYSTEM_PROMPT}]
+                },
+                "contents": [
+                    {"parts": [{"text": prompt}]}
+                ],
+                "generationConfig": {
+                    "response_mime_type": "application/json",
+                    "temperature": 0.0
+                }
+            }
+            resp = requests.post(url, headers={"Content-Type": "application/json"}, json=payload, timeout=60)
+            if resp.status_code == 200:
+                data = resp.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"]
+            else:
+                last_err = RuntimeError(f"Gemini {model_name} HTTP {resp.status_code}: {resp.text}")
+        except Exception as rest_err:
+            last_err = rest_err
+
+    raise RuntimeError(f"Gemini API Error: {last_err}")
+
+
+# ─── Main Summarizer with Multi-Model Fallback ────────────────────────────────
+
+def summarize_report(raw_text: str) -> MedicalSummary:
+    """
+    Translates a clinical medical report for patients strictly faithful to the source document.
+    Uses multi-model fallback:
+      1. Primary: Groq openai/gpt-oss-120b
+      2. Backup 1: Google Gemini API (if GEMINI_API_KEY is configured in .env)
+      3. Backup 2: Groq qwen/qwen3.8-27b
+    """
+    # Reload environment to pick up any manually added keys in .env
+    load_dotenv(dotenv_path=env_path, override=True)
+
+    groq_api_key = (os.getenv("GROQ_API_KEY") or "").strip()
+    gemini_api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+
+    if not groq_api_key and not gemini_api_key:
+        raise RuntimeError(
+            "Neither GROQ_API_KEY nor GEMINI_API_KEY is configured in your .env file.\n"
+            "Please provide at least one API key in the .env file."
+        )
+
+    prompt = _build_prompt(raw_text)
+
+    # Build fallback candidates list
+    candidates = []
+
+    # 1. Primary: Groq openai/gpt-oss-120b
+    if groq_api_key:
+        candidates.append({
+            "name": "Groq (openai/gpt-oss-120b)",
+            "func": lambda: _call_groq(groq_api_key, "openai/gpt-oss-120b", prompt)
+        })
+
+    # 2. Backup 1: Google Gemini API (if configured in .env)
+    if gemini_api_key:
+        candidates.append({
+            "name": "Google Gemini API",
+            "func": lambda: _call_gemini(gemini_api_key, prompt)
+        })
+
+    # 3. Backup 2: Groq qwen/qwen3.8-27b
+    if groq_api_key:
+        candidates.append({
+            "name": "Groq (qwen/qwen3.8-27b)",
+            "func": lambda: _call_groq(groq_api_key, "qwen/qwen3.8-27b", prompt)
+        })
+
+    attempt_errors = []
+
+    for candidate in candidates:
+        name = candidate["name"]
+        try:
+            print(f"[Summarizer] Attempting analysis using {name}...")
+            raw_output = candidate["func"]()
+            extracted_json = _extract_json_string(raw_output)
+            clean_json = _sanitize_unicode(extracted_json)
+            summary = MedicalSummary.model_validate_json(clean_json)
+            print(f"[Summarizer] Successfully generated summary using {name}!")
+            return summary
+        except Exception as err:
+            err_msg = str(err).encode("ascii", errors="replace").decode("ascii")
+            print(f"[Summarizer] {name} failed: {err_msg}")
+            attempt_errors.append(f"{name}: {err_msg}")
+
+    # If all candidates fail
+    details = "\n".join(f"  * {e}" for e in attempt_errors)
+    raise RuntimeError(f"All AI summary providers failed:\n{details}")
+
 
 
